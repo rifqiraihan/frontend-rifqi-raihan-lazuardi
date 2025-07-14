@@ -1,26 +1,15 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-
-interface Negara {
-  id_negara: string;
-  kode_negara: string;
-  nama_negara: string;
-}
-
-interface Pelabuhan {
-  id_pelabuhan: string;
-  nama_pelabuhan: string;
-  id_negara: string;
-}
-
-interface Barang {
-  id_barang: string;
-  id_pelabuhan: string;
-  nama_barang: string;
-  description: string;
-  harga: number;
-  diskon: number;
-}
+import {
+  Autocomplete,
+  CircularProgress,
+  Container,
+  TextField,
+  Typography,
+  Box,
+  InputLabel,
+} from '@mui/material';
+import { Barang, Negara, Pelabuhan } from './types';
 
 const BASE_URL = 'http://202.157.176.100:3001';
 
@@ -36,9 +25,12 @@ const App: React.FC = () => {
   const [pelabuhans, setPelabuhans] = useState<Pelabuhan[]>([]);
   const [barangs, setBarangs] = useState<Barang[]>([]);
 
-  const [selectedNegaraId, setSelectedNegaraId] = useState<string>('');
-  const [selectedPelabuhanId, setSelectedPelabuhanId] = useState<string>('');
-  const [selectedBarangId, setSelectedBarangId] = useState<string>('');
+  const [selectedNegara, setSelectedNegara] = useState<Negara | null>(null);
+  const [selectedPelabuhan, setSelectedPelabuhan] = useState<Pelabuhan | null>(null);
+  const [selectedBarang, setSelectedBarang] = useState<Barang | null>(null);
+
+  const [harga, setHarga] = useState<number>(0);
+  const [diskon, setDiskon] = useState<number>(0);
 
   const [loadingNegara, setLoadingNegara] = useState(false);
   const [loadingPelabuhan, setLoadingPelabuhan] = useState(false);
@@ -47,8 +39,6 @@ const App: React.FC = () => {
   const [errorNegara, setErrorNegara] = useState('');
   const [errorPelabuhan, setErrorPelabuhan] = useState('');
   const [errorBarang, setErrorBarang] = useState('');
-
-  const selectedBarang = barangs.find((b) => b.id_barang === selectedBarangId) || null;
 
   const fetchNegaras = async () => {
     try {
@@ -102,133 +92,169 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedNegaraId) {
-      fetchPelabuhans(selectedNegaraId);
-      setSelectedPelabuhanId('');
-      setSelectedBarangId('');
+    if (selectedNegara) {
+      fetchPelabuhans(selectedNegara.id_negara);
+      setSelectedPelabuhan(null);
+      setSelectedBarang(null);
     }
-  }, [selectedNegaraId]);
+  }, [selectedNegara]);
 
   useEffect(() => {
-    if (selectedPelabuhanId) {
-      fetchBarangs(selectedPelabuhanId);
-      setSelectedBarangId('');
+    if (selectedPelabuhan) {
+      fetchBarangs(selectedPelabuhan.id_pelabuhan);
+      setSelectedBarang(null);
     }
-  }, [selectedPelabuhanId]);
+  }, [selectedPelabuhan]);
 
-  const total =
-    selectedBarang?.harga && selectedBarang?.diskon
-      ? selectedBarang.harga * (1 - selectedBarang.diskon / 100)
-      : 0;
+  useEffect(() => {
+    if (selectedBarang) {
+      setHarga(selectedBarang.harga);
+      setDiskon(selectedBarang.diskon);
+    }
+  }, [selectedBarang]);
+
+  const total = harga * (1 - diskon / 100);
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '500px', margin: '0 auto' }}>
-      <h2>Frontend Test - Rifqi Raihan Lazuardi</h2>
-
-      <div style={{ marginBottom: '1rem' }}>
-        <label>
-          <strong>Negara</strong>
-          <br />
-          {loadingNegara ? (
-            <p>Loading negara...</p>
-          ) : errorNegara ? (
-            <p style={{ color: 'red' }}>{errorNegara}</p>
-          ) : (
-            <select
-              value={selectedNegaraId}
-              onChange={(e) => setSelectedNegaraId(e.target.value)}
-              style={{ width: '100%', padding: '0.5rem' }}
-            >
-              <option value="">-- Pilih Negara --</option>
-              {negaras.map((n) => (
-                <option key={n.id_negara} value={n.id_negara}>
-                  {n.nama_negara}
-                </option>
-              ))}
-            </select>
+    <Container maxWidth="md" sx={{ mt: 4, backgroundColor: 'white', padding: 5 }}>
+      <Box mb={3}>
+        <InputLabel sx={{ fontWeight: 'bold', color: 'black' }}>Negara</InputLabel>
+        <Autocomplete
+          options={negaras}
+          getOptionLabel={(option) => option.nama_negara}
+          loading={loadingNegara}
+          value={selectedNegara}
+          onChange={(_, value) => setSelectedNegara(value)}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              error={!!errorNegara}
+              helperText={errorNegara || ''}
+              placeholder="Please select..."
+              sx={{ backgroundColor: 'white' }}
+              InputProps={{
+                ...params.InputProps,
+                endAdornment: (
+                  <>
+                    {loadingNegara && <CircularProgress size={20} />}
+                    {params.InputProps.endAdornment}
+                  </>
+                ),
+              }}
+            />
           )}
-        </label>
-      </div>
+        />
+      </Box>
 
-      {selectedNegaraId && (
-        <div style={{ marginBottom: '1rem' }}>
-          <label>
-            <strong>Pelabuhan</strong>
-            <br />
-            {loadingPelabuhan ? (
-              <p>Loading pelabuhan...</p>
-            ) : errorPelabuhan ? (
-              <p style={{ color: 'red' }}>{errorPelabuhan}</p>
-            ) : (
-              <select
-                value={selectedPelabuhanId}
-                onChange={(e) => setSelectedPelabuhanId(e.target.value)}
-                style={{ width: '100%', padding: '0.5rem' }}
-              >
-                <option value="">-- Pilih Pelabuhan --</option>
-                {pelabuhans.map((p) => (
-                  <option key={p.id_pelabuhan} value={p.id_pelabuhan}>
-                    {p.nama_pelabuhan}
-                  </option>
-                ))}
-              </select>
-            )}
-          </label>
-        </div>
-      )}
+      <Box mb={3}>
+        <InputLabel sx={{ fontWeight: 'bold', color: 'black' }}>Pelabuhan</InputLabel>
+        <Autocomplete
+          options={pelabuhans}
+          getOptionLabel={(option) => option.nama_pelabuhan}
+          loading={loadingPelabuhan}
+          value={selectedPelabuhan}
+          disabled={!selectedNegara}
+          onChange={(_, value) => setSelectedPelabuhan(value)}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              error={!!errorPelabuhan}
+              helperText={errorPelabuhan || ''}
+              placeholder="Please select..."
+              sx={{ backgroundColor: 'white' }}
+              InputProps={{
+                ...params.InputProps,
+                endAdornment: (
+                  <>
+                    {loadingPelabuhan && <CircularProgress size={20} />}
+                    {params.InputProps.endAdornment}
+                  </>
+                ),
+              }}
+            />
+          )}
+        />
+      </Box>
 
-      {/* Barang */}
-      {selectedPelabuhanId && (
-        <div style={{ marginBottom: '1rem' }}>
-          <label>
-            <strong>Barang</strong>
-            <br />
-            {loadingBarang ? (
-              <p>Loading barang...</p>
-            ) : errorBarang ? (
-              <p style={{ color: 'red' }}>{errorBarang}</p>
-            ) : (
-              <select
-                value={selectedBarangId}
-                onChange={(e) => setSelectedBarangId(e.target.value)}
-                style={{ width: '100%', padding: '0.5rem' }}
-              >
-                <option value="">-- Pilih Barang --</option>
-                {barangs.map((b) => (
-                  <option key={b.id_barang} value={b.id_barang}>
-                    {b.nama_barang}
-                  </option>
-                ))}
-              </select>
-            )}
-          </label>
-        </div>
-      )}
+      <Box mb={3}>
+        <InputLabel sx={{ fontWeight: 'bold', color: 'black' }}>Barang</InputLabel>
+        <Autocomplete
+          options={barangs}
+          getOptionLabel={(option) => option.nama_barang}
+          loading={loadingBarang}
+          value={selectedBarang}
+          disabled={!selectedPelabuhan}
+          onChange={(_, value) => setSelectedBarang(value)}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              error={!!errorBarang}
+              helperText={errorBarang || ''}
+              placeholder="Please select..."
+              sx={{ backgroundColor: 'white' }}
+              InputProps={{
+                ...params.InputProps,
+                endAdornment: (
+                  <>
+                    {loadingBarang && <CircularProgress size={20} />}
+                    {params.InputProps.endAdornment}
+                  </>
+                ),
+              }}
+            />
+          )}
+        />
+      </Box>
 
       {selectedBarang && (
-        <div
-          style={{
-            marginTop: '2rem',
-            background: '#f1f1f1',
-            padding: '1rem',
-            borderRadius: '8px',
-          }}
-        >
-          <p>
-            <strong>Deskripsi:</strong> {selectedBarang.description}
-          </p>
-          <p>
-            <strong>Harga:</strong> {formatRupiah(selectedBarang.harga)}
-          </p>
-          <p>
-            <strong>Diskon:</strong> {selectedBarang.diskon}%
-          </p>
-          <p>
-            <strong>Total:</strong> {formatRupiah(total)}
-          </p>
-        </div>
+        <Box mt={4} mb={4} sx={{ color: 'black' }}>
+          <Box mb={2}>
+            <InputLabel sx={{ fontWeight: 'bold', color: 'black' }}>Deskripsi</InputLabel>
+            <TextField
+              value={selectedBarang.description}
+              multiline
+              fullWidth
+              minRows={2}
+              disabled
+              sx={{ backgroundColor: 'white' }}
+            />
+          </Box>
+
+          <Box mb={2}>
+            <InputLabel sx={{ fontWeight: 'bold', color: 'black' }}>Harga</InputLabel>
+            <TextField
+              type="number"
+              fullWidth
+              value={harga}
+              onChange={(e) => setHarga(Number(e.target.value))}
+              inputProps={{ min: 0 }}
+              sx={{ backgroundColor: 'white' }}
+            />
+          </Box>
+
+          <Box mb={2}>
+            <InputLabel sx={{ fontWeight: 'bold', color: 'black' }}>Diskon (%)</InputLabel>
+            <TextField
+              type="number"
+              fullWidth
+              value={diskon}
+              onChange={(e) => setDiskon(Number(e.target.value))}
+              inputProps={{ min: 0, max: 100 }}
+              sx={{ backgroundColor: 'white' }}
+            />
+          </Box>
+
+          <Box mb={2}>
+            <InputLabel sx={{ fontWeight: 'bold', color: 'black' }}>Total</InputLabel>
+            <Typography sx={{fontSize:30, fontWeight:'semi-bold'}}>
+              {formatRupiah(total)}
+           </Typography>
+          </Box>
+
+         
+        </Box>
       )}
-    </div>
+    </Container>
   );
 };
 
