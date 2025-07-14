@@ -4,3 +4,9 @@ export const formatRupiah = (value: number): string =>
     currency: 'IDR',
     minimumFractionDigits: 0,
   }).format(value).replace(',00', '');
+
+  export const formatNumber = (value: number): string =>
+  new Intl.NumberFormat('id-ID', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
